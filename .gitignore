@@ -1,4 +1,5 @@
 # --- Python Internals ---
+agriassist.iml
 __pycache__/
 *.py[cod]
 *$py.class
