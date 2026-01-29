@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/cloudy_background.dart';
 import '../../routes/app_routes.dart';
 
 class VoiceChatScreen extends StatelessWidget {
@@ -7,29 +8,30 @@ class VoiceChatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.bgGradientTop, AppColors.bgGradientBottom],
-          ),
-        ),
+    return CloudyBackground(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           children: [
+            // Top Navigation Bar
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("AgriAssist", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                const Text(
+                  "AgriAssist",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                    fontFamily: 'Skrubby', // Match the playful font in screenshot
+                  ),
+                ),
                 Row(
                   children: [
-                    const Icon(Icons.notifications_none, size: 30),
+                    const Icon(Icons.notifications_none, size: 32, color: AppColors.primary),
                     const SizedBox(width: 15),
                     IconButton(
-                      icon: const Icon(Icons.settings_outlined, size: 30),
+                      icon: const Icon(Icons.settings_outlined, size: 32, color: AppColors.primary),
                       onPressed: () => Navigator.pushNamed(context, AppRoutes.textChat),
                     ),
                   ],
@@ -37,35 +39,67 @@ class VoiceChatScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 30),
+
+            // Info Chips
             _buildInfoChip(Icons.trending_up, "Today's weather"),
             const SizedBox(height: 12),
             _buildInfoChip(Icons.trending_up, "Latest fertilizers"),
+
             const Spacer(),
+
             // Central Character Image
-            const CircleAvatar(
-              radius: 120,
-              backgroundColor: Color(0xFFB2D8C3),
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: Icon(Icons.person, size: 100), // Replace with asset image from screenshot
+            Container(
+              height: 250,
+              width: 250,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFFB2D8C3), // Soft circle background
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/farmer_character.png', // Ensure image is in assets
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
+
             const Spacer(),
-            const Text("Click on mic to start talking...", style: TextStyle(color: AppColors.textSecondary)),
-            const SizedBox(height: 20),
+
+            const Text(
+              "Click on mic to start talking...",
+              style: TextStyle(color: AppColors.primary, fontSize: 16),
+            ),
+            const SizedBox(height: 25),
+
+            // The Dark Green Mic Button
             GestureDetector(
               onTap: () => Navigator.pushNamed(context, AppRoutes.botListening),
-              child: Container(
-                height: 100,
-                width: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primary.withOpacity(0.8),
-                  border: Border.all(color: Colors.white.withOpacity(0.5), width: 8),
-                ),
-                child: const Icon(Icons.mic, color: Colors.white, size: 40),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Outer ripple effect
+                  Container(
+                    height: 110,
+                    width: 110,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withOpacity(0.3),
+                    ),
+                  ),
+                  // Main Dark Green Button
+                  Container(
+                    height: 85,
+                    width: 85,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary,
+                    ),
+                    child: const Icon(Icons.mic, color: Colors.white, size: 40),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -74,13 +108,19 @@ class VoiceChatScreen extends StatelessWidget {
 
   Widget _buildInfoChip(IconData icon, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.cardGrey.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(15),
+      ),
       child: Row(
         children: [
-          Icon(icon, size: 20),
-          const SizedBox(width: 10),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Icon(icon, size: 22, color: Colors.black87),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
         ],
       ),
     );

@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/otp_box.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/cloudy_background.dart';
 import '../../routes/app_routes.dart';
 
 class OtpScreen extends StatelessWidget {
@@ -10,20 +11,12 @@ class OtpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.bgGradientTop, AppColors.bgGradientBottom],
-          ),
-        ),
+    return CloudyBackground(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Back Button
             GestureDetector(
               onTap: () => Navigator.pop(context),
               child: const CircleAvatar(
@@ -60,9 +53,7 @@ class OtpScreen extends StatelessWidget {
             const Spacer(),
             PrimaryButton(
               text: "Next →",
-              onTap: () {
-                Navigator.pushNamed(context, AppRoutes.personalization);
-              },
+              onTap: () => Navigator.pushNamed(context, AppRoutes.personalization),
             ),
             const SizedBox(height: 20),
           ],

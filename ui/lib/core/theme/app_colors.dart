@@ -1,26 +1,23 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
+  // Background Mesh Gradient Colors
+  static const Color bgGradientTop = Color(0xFFF0F9F4);
+  static const Color bgGradientBottom = Color(0xFFB9E5D1);
 
-  // Background Gradient Colors
-  static const Color bgGradientTop = Color(0xFFF0F9F4);    // Very light mint/white
-  static const Color bgGradientBottom = Color(0xFFB9E5D1); // Soft mint green
-
-  static const Color primary = Color(0xFF1B3D48);          // Dark teal for buttons/text
+  // The Dark Teal/Green for Buttons and Mic (from your color code)
+  static const Color primary = Color(0xFF173B45);
 
   // Text Colors
-  static const Color textPrimary = Color(0xFF1A2C2E);
-  static const Color textSecondary = Color(0xFF6A797A);
+  static const Color textPrimary = Color(0xFF173B45);
+  static const Color textSecondary = Color(0xFF667085);
 
-  // Input/Border Colors
-  static const Color borderDefault = Color(0xFFD0D5DD);
-  static const Color borderSelected = Color(0xFF4CAF50); // Green selection
-  static const Color inputFill = Colors.white;
+  // UI Component Colors (The missing members)
+  static const Color inputFill = Colors.white;              // For text field backgrounds
+  static const Color borderDefault = Color(0xFFD0D5DD);     // Light grey for unselected borders
+  static const Color borderSelected = Color(0xFF173B45);    // Dark green for active borders/selections
 
-  import 'package:flutter/material.dart';
-
-  class AppColors {
-  // These colors match the soft mint gradient in your screenshots
-
-  }
+  // Card and Chip Colors
+  static const Color cardGrey = Color(0xFFD9D9D9);          // For the "Today's weather" chips
+  static const Color chipSelectedBg = Color(0xFFF0FDF9);    // Soft green tint for selected chips
 }
