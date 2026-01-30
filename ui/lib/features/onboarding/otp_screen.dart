@@ -16,24 +16,33 @@ class OtpScreen extends StatefulWidget {
 class _OtpScreenState extends State<OtpScreen> {
   final List<TextEditingController> _controllers = List.generate(6, (index) => TextEditingController());
   String? _otpError;
+  bool _isLoading = false;
 
-  void _validateOtp() {
-    // Combine all controller values to get the full OTP
+  Future<void> _validateOtp() async {
     String otp = _controllers.map((c) => c.text).join();
 
+    if (otp.isEmpty) {
+      setState(() => _otpError = "OTP must not be blank");
+      return;
+    } else if (otp.length < 6) {
+      setState(() => _otpError = "6 numeric digits are required");
+      return;
+    }
+
     setState(() {
-      if (otp.isEmpty) {
-        _otpError = "OTP must not be blank";
-      } else if (otp.length < 6 || !RegExp(r'^[0-9]+$').hasMatch(otp)) {
-        _otpError = "6 numeric digits are required";
-      } else if (otp == "000000") {
-        _otpError = "invalid otp";
-      } else {
-        _otpError = null;
-        ApiService.submitOnboardingData({"otp": otp});
-        Navigator.pushNamed(context, AppRoutes.personalization);
-      }
+      _otpError = null;
+      _isLoading = true;
     });
+
+    bool success = await ApiService.verifyOtp(otp);
+
+    setState(() => _isLoading = false);
+
+    if (success && mounted) {
+      Navigator.pushNamed(context, AppRoutes.personalization);
+    } else if (mounted) {
+      setState(() => _otpError = "Invalid OTP or Error");
+    }
   }
 
   @override
@@ -57,7 +66,9 @@ class _OtpScreenState extends State<OtpScreen> {
                 child: Text(_otpError!, style: const TextStyle(color: Colors.red)),
               ),
             const Spacer(),
-            PrimaryButton(text: "Next →", onTap: _validateOtp),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : PrimaryButton(text: "Next →", onTap: _validateOtp),
             const SizedBox(height: 20),
           ],
         ),

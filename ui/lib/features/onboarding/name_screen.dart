@@ -4,9 +4,34 @@ import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/cloudy_background.dart';
 import '../../routes/app_routes.dart';
+import '../../services/api_service.dart';
 
-class NameScreen extends StatelessWidget {
+class NameScreen extends StatefulWidget {
   const NameScreen({super.key});
+
+  @override
+  State<NameScreen> createState() => _NameScreenState();
+}
+
+class _NameScreenState extends State<NameScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _submitName() async {
+    final name = _nameController.text.trim();
+    if (name.isNotEmpty) {
+      setState(() => _isLoading = true);
+
+      // Update Name on backend
+      await ApiService.updateUserProfile({"full_name": name});
+
+      setState(() => _isLoading = false);
+    }
+
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.voiceChat, (route) => false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,16 +62,25 @@ class NameScreen extends StatelessWidget {
                 children: [
                   const Text("Enter your name", style: AppTextStyles.label),
                   const SizedBox(height: 10),
-                  const CustomTextField(hintText: "Prajwal"),
+                  CustomTextField(
+                      hintText: "Prajwal",
+                      controller: _nameController
+                  ),
                 ],
               ),
             ),
-            PrimaryButton(
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : PrimaryButton(
               text: "Submit",
-              onTap: () => Navigator.pushNamedAndRemoveUntil(context, AppRoutes.voiceChat, (route) => false),
+              onTap: _submitName,
             ),
             const SizedBox(height: 15),
-            const Center(child: Text("Skip for Now", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500))),
+            GestureDetector(
+              onTap: () => Navigator.pushNamedAndRemoveUntil(context, AppRoutes.voiceChat, (route) => false),
+              child: const Center(
+                  child: Text("Skip for Now", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500))),
+            ),
             const SizedBox(height: 20),
           ],
         ),

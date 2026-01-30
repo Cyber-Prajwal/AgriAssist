@@ -4,6 +4,7 @@ import '../../core/widgets/option_chip.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/cloudy_background.dart';
 import '../../routes/app_routes.dart';
+import '../../services/api_service.dart';
 
 class PersonalizationScreen extends StatefulWidget {
   const PersonalizationScreen({super.key});
@@ -16,6 +17,29 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
   String? ownFarm;
   String? waterSupply;
   String? landType;
+  bool _isLoading = false;
+
+  Future<void> _submitData() async {
+    setState(() => _isLoading = true);
+
+    // Prepare data map for Form update
+    // Note: Backend expects keys: has_farm, water_supply, farm_type
+    Map<String, String> data = {};
+    if (ownFarm != null) data['has_farm'] = ownFarm!;
+    if (waterSupply != null) data['water_supply'] = waterSupply!;
+    if (landType != null) data['farm_type'] = landType!;
+
+    // We send what we have. Even if empty, we move next.
+    if (data.isNotEmpty) {
+      await ApiService.updateUserProfile(data);
+    }
+
+    setState(() => _isLoading = false);
+
+    if (mounted) {
+      Navigator.pushNamed(context, AppRoutes.name);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,9 +97,11 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            PrimaryButton(
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : PrimaryButton(
               text: "Next →",
-              onTap: () => Navigator.pushNamed(context, AppRoutes.name),
+              onTap: _submitData,
             ),
             const SizedBox(height: 20),
           ],

@@ -16,25 +16,41 @@ class PhoneScreen extends StatefulWidget {
 class _PhoneScreenState extends State<PhoneScreen> {
   final TextEditingController _phoneController = TextEditingController();
   String? _errorMessage;
+  bool _isLoading = false;
 
-  void _validateAndSubmit() {
-    final value = _phoneController.text.trim(); // Trim white spaces
+  Future<void> _validateAndSubmit() async {
+    final value = _phoneController.text.trim();
 
+    // Client-side validation
+    if (value.isEmpty) {
+      setState(() => _errorMessage = "It must not be blank");
+      return;
+    } else if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+      setState(() => _errorMessage = "Only numeric values are allowed");
+      return;
+    } else if (!RegExp(r'^[6-9]').hasMatch(value)) {
+      setState(() => _errorMessage = "Please enter a valid number");
+      return;
+    } else if (value.length != 10) {
+      setState(() => _errorMessage = "Must be a 10 digit number");
+      return;
+    }
+
+    // Call API
     setState(() {
-      if (value.isEmpty) {
-        _errorMessage = "It must not be blank";
-      } else if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-        _errorMessage = "Only numeric values are allowed";
-      } else if (!RegExp(r'^[6-9]').hasMatch(value)) {
-        _errorMessage = "Please enter a valid number";
-      } else if (value.length != 10) {
-        _errorMessage = "Must be a 10 digit number";
-      } else {
-        _errorMessage = null;
-        ApiService.submitOnboardingData({"phone": value});
-        Navigator.pushNamed(context, AppRoutes.otp);
-      }
+      _errorMessage = null;
+      _isLoading = true;
     });
+
+    bool success = await ApiService.sendOtp(value);
+
+    setState(() => _isLoading = false);
+
+    if (success && mounted) {
+      Navigator.pushNamed(context, AppRoutes.otp);
+    } else if (mounted) {
+      setState(() => _errorMessage = "Failed to send OTP. Try again.");
+    }
   }
 
   @override
@@ -54,10 +70,12 @@ class _PhoneScreenState extends State<PhoneScreen> {
               hintText: "1234567890",
               keyboardType: TextInputType.phone,
               controller: _phoneController,
-              errorText: _errorMessage, // Display exact msg below textbox
+              errorText: _errorMessage,
             ),
             const Spacer(),
-            PrimaryButton(text: "Get OTP", onTap: _validateAndSubmit),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : PrimaryButton(text: "Get OTP", onTap: _validateAndSubmit),
             const SizedBox(height: 20),
           ],
         ),
