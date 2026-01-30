@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
       title: 'AgriAssist',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: 'Inter', // Make sure to add font in pubspec.yaml if needed
+        fontFamily: 'PatrickHand',  //   'Inter', // Make sure to add font in pubspec.yaml if needed
         primarySwatch: Colors.teal,
         useMaterial3: true,
       ),

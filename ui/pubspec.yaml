@@ -53,6 +53,10 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   uses-material-design: true
+  fonts:
+    - family: PatrickHand
+      fonts:
+        - asset: assets/fonts/PatrickHand-Regular.ttf
 
   assets:
     - assets/images/farmer_character.png
