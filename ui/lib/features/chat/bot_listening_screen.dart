@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../routes/app_routes.dart';
 import '../../core/widgets/cloudy_background.dart';
 
 class BotListeningScreen extends StatelessWidget {
@@ -71,13 +72,29 @@ class BotListeningScreen extends StatelessWidget {
             ),
             const Spacer(),
 
+
             // Footer Actions
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildCircleAction(Icons.chat_bubble_outline),
+                // 1. Chat Button - Redirects to Text Chat
+                _buildCircleAction(
+                  Icons.chat_bubble_outline,
+                  onTap: () {
+                    Navigator.pushNamed(context, AppRoutes.textChat);
+                  },
+                ),
+
+                // 2. Mic Button
                 _buildRippleMic(),
-                _buildCircleAction(Icons.close),
+
+                // 3. Close Button - Goes back to previous screen
+                _buildCircleAction(
+                  Icons.close,
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -114,15 +131,18 @@ class BotListeningScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCircleAction(IconData icon) {
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.primary.withOpacity(0.1), // Soft teal/grey background
+  Widget _buildCircleAction(IconData icon, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap, // This enables the click functionality
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.primary.withOpacity(0.1),
+        ),
+        child: Icon(icon, color: AppColors.primary, size: 28),
       ),
-      child: Icon(icon, color: AppColors.primary, size: 28), // Dark icons
     );
   }
 }
