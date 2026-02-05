@@ -54,13 +54,13 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   fonts:
-    - family: PatrickHand
+    - family: Inter
       fonts:
         - asset: assets/fonts/PatrickHand-Regular.ttf
 
   assets:
     - assets/images/farmer_character.png
-    - assets/images/listening.png
+    - assets/images/farmer_listening.png
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

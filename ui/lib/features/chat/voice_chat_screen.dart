@@ -1,127 +1,162 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/widgets/cloudy_background.dart';
-import '../../routes/app_routes.dart';
+import 'bot_listening_screen.dart';
+import 'text_chat_screen.dart';
+import '../../routes/app_routes.dart'; // ✅ IMPORTANT
 
 class VoiceChatScreen extends StatelessWidget {
   const VoiceChatScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return CloudyBackground(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        child: Column(
-          children: [
-            // Top Navigation Bar
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFEAF8F1),
+      appBar: AppBar(
+        title: const Text(
+          'AgriAssist',
+          style: TextStyle(color: Colors.black),
+        ),
+        backgroundColor: const Color(0xFFEAF8F1),
+        elevation: 0,
+        actions: [
+
+          /// ⚙️ SETTINGS BUTTON → SETTINGS SCREEN
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.black),
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.settings);
+            },
+          ),
+
+          const SizedBox(width: 12),
+        ],
+      ),
+
+      body: Column(
+        children: [
+          const SizedBox(height: 20),
+
+          /// 🔹 TOP OPTIONS (2x2 GRID)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
               children: [
-                const Text(
-                  "AgriAssist",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                    fontFamily: 'Skrubby', // Match the playful font in screenshot
-                  ),
-                ),
                 Row(
                   children: [
-                    const Icon(Icons.notifications_none, size: 32, color: AppColors.primary),
-                    const SizedBox(width: 15),
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined, size: 32, color: AppColors.primary),
-                      onPressed: () => Navigator.pushNamed(context, AppRoutes.textChat),
-                    ),
+                    _optionCard('🌦️ Weather Report'),
+                    const SizedBox(width: 12),
+                    _optionCard('💰 Bazaar Bhav'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _optionCard('🌱 Crop Advice'),
+                    const SizedBox(width: 12),
+                    _optionCard('🐄 Livestock Care'),
                   ],
                 ),
               ],
             ),
-            const SizedBox(height: 30),
+          ),
 
-            // Info Chips
-            _buildInfoChip(Icons.trending_up, "Today's weather"),
-            const SizedBox(height: 12),
-            _buildInfoChip(Icons.trending_up, "Latest fertilizers"),
+          const Spacer(),
 
-            const Spacer(),
+          /// 👨‍🌾 FARMER IMAGE
+          CircleAvatar(
+            radius: 90,
+            backgroundColor: Colors.white,
+            child: Image.asset(
+              'assets/images/farmer_character.png',
+              height: 130,
+            ),
+          ),
 
-            // Central Character Image
-            Container(
-              height: 250,
-              width: 250,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFB2D8C3), // Soft circle background
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/farmer_character.png', // Ensure image is in assets
-                  fit: BoxFit.contain,
+          const SizedBox(height: 12),
+
+          const Text(
+            'Click on mic to start talking...',
+            style: TextStyle(color: Colors.black54),
+          ),
+
+          const Spacer(),
+
+          /// 🎤 BOTTOM CONTROLS
+          SizedBox(
+            height: 90,
+            width: screenWidth,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                /// 💬 MESSAGE ICON (LEFT)
+                Positioned(
+                  left: screenWidth / 2 - 140,
+                  child: CircleAvatar(
+                    radius: 26,
+                    backgroundColor: Colors.white,
+                    child: IconButton(
+                      icon: const Icon(Icons.message, color: Colors.black87),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TextChatScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              ),
-            ),
 
-            const Spacer(),
-
-            const Text(
-              "Click on mic to start talking...",
-              style: TextStyle(color: AppColors.primary, fontSize: 16),
-            ),
-            const SizedBox(height: 25),
-
-            // The Dark Green Mic Button
-            GestureDetector(
-              onTap: () => Navigator.pushNamed(context, AppRoutes.botListening),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Outer ripple effect
-                  Container(
-                    height: 110,
-                    width: 110,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primary.withOpacity(0.3),
+                /// 🎤 MIC BUTTON (CENTER)
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const BotListeningScreen(),
+                      ),
+                    );
+                  },
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundColor: const Color(0xFF0E3D3D),
+                    child: const Icon(
+                      Icons.mic,
+                      color: Colors.white,
+                      size: 32,
                     ),
                   ),
-                  // Main Dark Green Button
-                  Container(
-                    height: 85,
-                    width: 85,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primary,
-                    ),
-                    child: const Icon(Icons.mic, color: Colors.white, size: 40),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+
+          const SizedBox(height: 30),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.cardGrey.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 22, color: Colors.black87),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+  /// 🔹 OPTION CARD
+  Widget _optionCard(String title) {
+    return Expanded(
+      child: Container(
+        height: 64,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ],
+        ),
       ),
     );
   }

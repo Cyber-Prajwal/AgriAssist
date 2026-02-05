@@ -11,6 +11,7 @@ import '../features/onboarding/name_screen.dart';
 import '../features/chat/voice_chat_screen.dart';
 import '../features/chat/bot_listening_screen.dart';
 import '../features/chat/text_chat_screen.dart';
+import '../features/chat/settings_screen.dart'; // 👈 ADD THIS
 
 class AppRoutes {
   static const String splash = '/';
@@ -21,6 +22,7 @@ class AppRoutes {
   static const String voiceChat = '/voice-chat';
   static const String botListening = '/bot-listening';
   static const String textChat = '/text-chat';
+  static const String settings = '/settings'; // 👈 ADD THIS
 
   static Map<String, WidgetBuilder> get routes => {
     splash: (context) => const SplashScreen(),
@@ -31,5 +33,6 @@ class AppRoutes {
     voiceChat: (context) => const VoiceChatScreen(),
     botListening: (context) => const BotListeningScreen(),
     textChat: (context) => const TextChatScreen(),
+    settings: (context) => const SettingsScreen(), // 👈 ADD THIS
   };
 }

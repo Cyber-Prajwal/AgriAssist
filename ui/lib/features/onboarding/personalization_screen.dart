@@ -49,14 +49,15 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: const CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: 20,
-                child: Icon(Icons.arrow_back, color: Colors.black),
-              ),
-            ),
+            //Backbutton
+            // GestureDetector(
+            //   onTap: () => Navigator.pop(context),
+            //   child: const CircleAvatar(
+            //     backgroundColor: Colors.white,
+            //     radius: 20,
+            //     child: Icon(Icons.arrow_back, color: Colors.black),
+            //   ),
+            // ),
             const SizedBox(height: 40),
             const Text("Get personalised\nexperience", style: AppTextStyles.heading),
             const SizedBox(height: 30),

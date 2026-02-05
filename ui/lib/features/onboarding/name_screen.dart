@@ -63,7 +63,7 @@ class _NameScreenState extends State<NameScreen> {
                   const Text("Enter your name", style: AppTextStyles.label),
                   const SizedBox(height: 10),
                   CustomTextField(
-                      hintText: "Prajwal",
+                      hintText: "Enter your name",
                       controller: _nameController
                   ),
                 ],
@@ -74,12 +74,6 @@ class _NameScreenState extends State<NameScreen> {
                 : PrimaryButton(
               text: "Submit",
               onTap: _submitName,
-            ),
-            const SizedBox(height: 15),
-            GestureDetector(
-              onTap: () => Navigator.pushNamedAndRemoveUntil(context, AppRoutes.voiceChat, (route) => false),
-              child: const Center(
-                  child: Text("Skip for Now", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500))),
             ),
             const SizedBox(height: 20),
           ],
