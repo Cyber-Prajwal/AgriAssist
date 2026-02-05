@@ -16,20 +16,37 @@ class NameScreen extends StatefulWidget {
 class _NameScreenState extends State<NameScreen> {
   final TextEditingController _nameController = TextEditingController();
   bool _isLoading = false;
+  String? _errorMessage; // Added to track validation error
 
   Future<void> _submitName() async {
     final name = _nameController.text.trim();
-    if (name.isNotEmpty) {
-      setState(() => _isLoading = true);
 
-      // Update Name on backend
-      await ApiService.updateUserProfile({"full_name": name});
-
-      setState(() => _isLoading = false);
+    // 1. Mandatory Check
+    if (name.isEmpty) {
+      setState(() {
+        _errorMessage = "Name is required to continue";
+      });
+      return; // Stop execution
     }
 
-    if (mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.voiceChat, (route) => false);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null; // Clear error if valid
+    });
+
+    try {
+      // 2. Update Name on backend
+      await ApiService.updateUserProfile({"full_name": name});
+
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.voiceChat, (route) => false);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -60,17 +77,37 @@ class _NameScreenState extends State<NameScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Enter your name", style: AppTextStyles.label),
+                  // RichText to show the mandatory asterisk
+                  RichText(
+                    text: const TextSpan(
+                      text: "Enter your name",
+                      style: AppTextStyles.label,
+                      children: [
+                        TextSpan(text: " *", style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   CustomTextField(
-                      hintText: "Enter your name",
-                      controller: _nameController
+                    hintText: "Enter your name",
+                    controller: _nameController,
+                    // If your CustomTextField supports an errorBorder or decoration,
+                    // you could pass _errorMessage here.
                   ),
+                  // 3. Display Error Message below field
+                  if (_errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
                 ],
               ),
             ),
             _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF0E3D3D)))
                 : PrimaryButton(
               text: "Submit",
               onTap: _submitName,

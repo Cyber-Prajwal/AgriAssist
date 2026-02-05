@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 class CloudyBackground extends StatelessWidget {
   final Widget child;
@@ -12,55 +11,73 @@ class CloudyBackground extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Base Mint Background
-          Container(color: const Color(0xFFF0F9F4)),
+          // 1. Solid Base Layer
+          Container(color: const Color(0xFFF7FCF9)),
 
-          // 2. The "Clouds" (Colorful Blobs)
-          // Top Left Cloud (Mint)
-          Positioned(
-            top: -50,
-            left: -50,
-            child: _buildCloud(250, const Color(0xFFB9E5D1)),
-          ),
-          // Top Right Cloud (Cream/Yellow)
-          Positioned(
-            top: 100,
-            right: -80,
-            child: _buildCloud(300, const Color(0xFFFFF4D9)),
-          ),
-          // Center Left Cloud (White Glow)
-          Positioned(
-            top: 300,
-            left: -100,
-            child: _buildCloud(350, Colors.white.withOpacity(0.8)),
-          ),
-          // Bottom Right Cloud (Greenish)
-          Positioned(
-            bottom: -50,
-            right: -50,
-            child: _buildCloud(300, const Color(0xFFC7EBD7)),
+          // 2. The "Clouds" - Structure matched to image_dca121.png
+          Stack(
+            children: [
+              // TOP-LEFT/CENTER CLOUD (Vertical Oval)
+              Positioned(
+                top: -80,
+                left: 20,
+                child: _buildCloud(400, 500, const Color(0xFFD9F2E6)),
+              ),
+
+              // TOP-RIGHT CLOUD (Horizontal Oval)
+              Positioned(
+                top: 20,
+                right: -100,
+                child: _buildCloud(500, 450, const Color(0xFFD1EFE1)),
+              ),
+
+              // MID-BOTTOM LEFT CLOUD
+              Positioned(
+                bottom: 180,
+                left: -80,
+                child: _buildCloud(450, 450, const Color(0xFFE3F6ED)),
+              ),
+
+              // BOTTOM-RIGHT CLOUD (Large anchor)
+              Positioned(
+                bottom: -120,
+                right: -60,
+                child: _buildCloud(550, 500, const Color(0xFFD1EFE1)),
+              ),
+            ],
           ),
 
-          // 3. The Blur Overlay (This creates the "Cloudy" effect)
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
-            child: Container(color: Colors.transparent),
+          // 3. High-Intensity Blur Overlay
+          // Sigma 90+ gives that smooth "Mesh" look from your screenshots
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 95, sigmaY: 95),
+              child: Container(
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
           ),
 
-          // 4. The actual Page Content
+          // 4. Content Layer
           SafeArea(child: child),
         ],
       ),
     );
   }
 
-  Widget _buildCloud(double size, Color color) {
+  // Modified to allow width/height control for oval shapes
+  Widget _buildCloud(double width, double height, Color color) {
     return Container(
-      width: size,
-      height: size,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color,
+        gradient: RadialGradient(
+          colors: [
+            color,
+            color.withOpacity(0.3),
+          ],
+        ),
       ),
     );
   }
