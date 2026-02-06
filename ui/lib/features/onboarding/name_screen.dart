@@ -5,6 +5,7 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/cloudy_background.dart';
 import '../../routes/app_routes.dart';
 import '../../services/api_service.dart';
+import '../../core/services/auth_service.dart';
 
 class NameScreen extends StatefulWidget {
   const NameScreen({super.key});
@@ -16,20 +17,54 @@ class NameScreen extends StatefulWidget {
 class _NameScreenState extends State<NameScreen> {
   final TextEditingController _nameController = TextEditingController();
   bool _isLoading = false;
+  String? _errorMessage;
 
+  // name_screen.dart - Update _submitName method
   Future<void> _submitName() async {
     final name = _nameController.text.trim();
-    if (name.isNotEmpty) {
-      setState(() => _isLoading = true);
 
-      // Update Name on backend
-      await ApiService.updateUserProfile({"full_name": name});
-
-      setState(() => _isLoading = false);
+    if (name.isEmpty) {
+      setState(() {
+        _errorMessage = "Name is required to continue";
+      });
+      return;
     }
 
-    if (mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.voiceChat, (route) => false);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // 1. Update Profile on Backend
+      await ApiService.updateUserProfile({"full_name": name});
+
+      // 2. ✅ Update local storage with user name
+      await AuthService.setLoggedIn(
+        true,
+        userId: ApiService.currentUserId,
+        phoneNumber: ApiService.currentPhoneNumber,
+        userName: name, // 👈 Save the name too
+      );
+
+      if (mounted) {
+        // 3. Clear the whole stack and go to Voice Chat
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.voiceChat,
+              (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${e.toString()}")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -41,45 +76,51 @@ class _NameScreenState extends State<NameScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: Container(
-                height: 40,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(5)),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [Text("Eng"), Icon(Icons.keyboard_arrow_down, size: 16)],
-                ),
-              ),
-            ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 80),
             const Text("What's your\nname?", style: AppTextStyles.heading),
             const SizedBox(height: 40),
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Enter your name", style: AppTextStyles.label),
-                  const SizedBox(height: 10),
-                  CustomTextField(
-                      hintText: "Prajwal",
-                      controller: _nameController
+                  RichText(
+                    text: const TextSpan(
+                      text: "Enter your name",
+                      style: AppTextStyles.label,
+                      children: [
+                        TextSpan(
+                            text: " *",
+                            style: TextStyle(color: Colors.red)
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 10),
+
+                  // Cleaned up CustomTextField to match your widget definition
+                  CustomTextField(
+                    hintText: "Full Name",
+                    controller: _nameController,
+                  ),
+
+                  if (_errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ),
                 ],
               ),
             ),
+
             _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF0E3D3D)))
                 : PrimaryButton(
               text: "Submit",
               onTap: _submitName,
-            ),
-            const SizedBox(height: 15),
-            GestureDetector(
-              onTap: () => Navigator.pushNamedAndRemoveUntil(context, AppRoutes.voiceChat, (route) => false),
-              child: const Center(
-                  child: Text("Skip for Now", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500))),
             ),
             const SizedBox(height: 20),
           ],

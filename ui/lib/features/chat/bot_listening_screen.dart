@@ -1,147 +1,201 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../routes/app_routes.dart';
-import '../../core/widgets/cloudy_background.dart';
+import 'text_chat_screen.dart';
 
-class BotListeningScreen extends StatelessWidget {
+class BotListeningScreen extends StatefulWidget {
   const BotListeningScreen({super.key});
 
   @override
+  State<BotListeningScreen> createState() => _BotListeningScreenState();
+}
+
+class _BotListeningScreenState extends State<BotListeningScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _rippleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
+
+    _rippleAnim = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return CloudyBackground(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        child: Column(
-          children: [
-            // Header - Changed color to AppColors.primary
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFEAF8F1),
+      appBar: AppBar(
+        title: const Text('AgriAssist', style: TextStyle(color: Colors.black)),
+        backgroundColor: const Color(0xFFEAF8F1),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: Column(
+        children: [
+          const SizedBox(height: 40),
+
+          /// 🔊 PROFILE PHOTO — SMOOTH RIPPLE
+          SizedBox(
+            width: 220,
+            height: 220,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                const Text(
-                  "AgriAssist",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary, // Matches dark text in photo
+                /// 🌊 SMOOTH BREATHING RIPPLE
+                AnimatedBuilder(
+                  animation: _rippleAnim,
+                  builder: (_, __) {
+                    final scale = 1 + (_rippleAnim.value * 0.30);
+                    final opacity = (1 - _rippleAnim.value) * 0.6;
+
+                    return Transform.scale(
+                      scale: scale,
+                      child: Container(
+                        width: 190,
+                        height: 190,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.green.withOpacity(opacity),
+                            width: 10,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                /// 🧑‍🌾 PROFILE IMAGE
+                CircleAvatar(
+                  radius: 85,
+                  backgroundColor: Colors.transparent,
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/farmer_listening.png',
+                      height: 170,
+                      width: 170,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
-                const Row(
-                  children: [
-                    Icon(Icons.notifications_none, size: 32, color: AppColors.primary),
-                    SizedBox(width: 15),
-                    Icon(Icons.settings_outlined, size: 32, color: AppColors.primary),
-                  ],
-                ),
               ],
             ),
-            const Spacer(),
-
-            // Character Image with Grey/Teal border
-            Container(
-              height: 220,
-              width: 220,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFFB9E5D1).withOpacity(0.8), // Softer border like photo
-                  width: 12,
-                ),
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/listening.png',
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(height: 50),
-
-            // Subtitle Text - Changed to AppColors.primary
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                "I am listening to you, please speak clearly...",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  color: AppColors.primary, // Dark teal text
-                  height: 1.5,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            const Spacer(),
-
-
-            // Footer Actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // 1. Chat Button - Redirects to Text Chat
-                _buildCircleAction(
-                  Icons.chat_bubble_outline,
-                  onTap: () {
-                    Navigator.pushNamed(context, AppRoutes.textChat);
-                  },
-                ),
-
-                // 2. Mic Button
-                _buildRippleMic(),
-
-                // 3. Close Button - Goes back to previous screen
-                _buildCircleAction(
-                  Icons.close,
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRippleMic() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Outer ripple matching the soft teal background
-        Container(
-          height: 110,
-          width: 110,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.primary.withOpacity(0.1),
           ),
-        ),
-        // Main Mic Button
-        Container(
-          height: 85,
-          width: 85,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.primary, // Dark teal center
-          ),
-          child: const Icon(Icons.mic, color: Colors.white, size: 35),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildCircleAction(IconData icon, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap, // This enables the click functionality
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.primary.withOpacity(0.1),
-        ),
-        child: Icon(icon, color: AppColors.primary, size: 28),
+          const SizedBox(height: 20),
+
+          const Text(
+            'Listening...',
+            style: TextStyle(fontSize: 16, color: Colors.black54),
+          ),
+
+          const Spacer(),
+
+          /// 🔽 BOTTOM CONTROLS
+          Padding(
+            padding: const EdgeInsets.only(bottom: 32),
+            child: SizedBox(
+              height: 110,
+              width: double.infinity,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  /// 🎤 MIC BUTTON (REFERENCE RIPPLE)
+                  SizedBox(
+                    width: 90,
+                    height: 90,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        AnimatedBuilder(
+                          animation: _rippleAnim,
+                          builder: (_, __) {
+                            final scale = 1 + (_rippleAnim.value * 0.6);
+                            final opacity =
+                                (1 - _rippleAnim.value) * 0.5;
+
+                            return Transform.scale(
+                              scale: scale,
+                              child: Container(
+                                width: 90,
+                                height: 90,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color:
+                                  Colors.green.withOpacity(opacity),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        Container(
+                          width: 90,
+                          height: 90,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0E3D3D),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.18),
+                                blurRadius: 10,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.mic,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  /// ❌ CLOSE BUTTON
+                  Positioned(
+                    left: screenWidth / 2 + 80,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.close, size: 22),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TextChatScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

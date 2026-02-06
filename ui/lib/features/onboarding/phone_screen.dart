@@ -67,7 +67,7 @@ class _PhoneScreenState extends State<PhoneScreen> {
             const Text("Enter the phone number", style: AppTextStyles.label),
             const SizedBox(height: 10),
             CustomTextField(
-              hintText: "1234567890",
+              hintText: "",
               keyboardType: TextInputType.phone,
               controller: _phoneController,
               errorText: _errorMessage,

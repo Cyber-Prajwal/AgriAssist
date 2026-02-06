@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'routes/app_routes.dart';
+import 'services/api_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // ✅ Initialize ApiService with stored user data BEFORE app starts
+  await ApiService.initializeFromStorage();
+
   runApp(const MyApp());
 }
 
@@ -11,13 +17,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AgriAssist',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: 'PatrickHand',  //   'Inter', // Make sure to add font in pubspec.yaml if needed
-        primarySwatch: Colors.teal,
-        useMaterial3: true,
-      ),
+      title: 'AgriAssist',
       initialRoute: AppRoutes.splash,
       routes: AppRoutes.routes,
     );

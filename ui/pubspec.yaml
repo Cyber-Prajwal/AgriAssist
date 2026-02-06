@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  shared_preferences: ^2.2.2
+  flutter_markdown: ^0.6.15
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -54,13 +56,13 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   fonts:
-    - family: PatrickHand
+    - family: Inter
       fonts:
         - asset: assets/fonts/PatrickHand-Regular.ttf
 
   assets:
     - assets/images/farmer_character.png
-    - assets/images/listening.png
+    - assets/images/farmer_listening.png
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
