@@ -1,18 +1,18 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart'; // ✅ This includes kDebugMode
+import 'dart:typed_data'; // ✅ Required for Uint8List
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import '../core/services/auth_service.dart'; // ✅ ADD THIS IMPORT
+import '../core/services/auth_service.dart';
 
 class ApiService {
   // ⭐ PRODUCTION URL (Render)
   static const String baseUrl = 'https://agriassist-cxng.onrender.com';
-  //static const String baseUrl = 'http://10.0.2.2:8000';
+  // static const String baseUrl= 'http://10.0.2.2:8000';
 
-  // Store data temporarily for the session (volatile memory)
+  // Store data temporarily
   static String? currentPhoneNumber;
   static int? currentUserId;
 
-  // ✅ ADD THIS METHOD (Make sure it exists)
   static Future<void> initializeFromStorage() async {
     currentUserId = await AuthService.getUserId();
     currentPhoneNumber = await AuthService.getPhoneNumber();
@@ -23,7 +23,6 @@ class ApiService {
       print("   Phone: $currentPhoneNumber");
     }
   }
-
 
   // --- 1. Send OTP ---
   static Future<bool> sendOtp(String phone) async {
@@ -94,14 +93,13 @@ class ApiService {
     }
   }
 
-  // --- 4. Create Chat Session (NEW) ---
+  // --- 4. Create Chat Session ---
   static Future<int?> createSession(String title) async {
     if (currentUserId == null) {
       if (kDebugMode) print("Error: User ID is null. Log in first.");
       return null;
     }
 
-    // user_id is passed as a query parameter
     final url = Uri.parse('$baseUrl/chat/sessions?user_id=$currentUserId');
 
     try {
@@ -113,7 +111,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['id']; // Returns the new Session ID
+        return data['id'];
       } else {
         if (kDebugMode) print("Error Create Session: ${response.body}");
         return null;
@@ -124,11 +122,10 @@ class ApiService {
     }
   }
 
-  // --- 5. Send Message to AI (NEW) ---
-  static Future<String?> sendChatMessage(int sessionId, String message) async {
+  // --- 5. Send Message to AI (UPDATED) ---
+  static Future<Map<String, dynamic>?> sendChatMessage(int sessionId, String message) async {
     if (currentUserId == null) return null;
 
-    // Endpoint structure: /chat/{session_id}/message?user_id={user_id}
     final url = Uri.parse('$baseUrl/chat/$sessionId/message?user_id=$currentUserId');
 
     try {
@@ -140,8 +137,11 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        // The backend returns the AI message object. We want the 'content'.
-        return data['content'];
+        // ✅ Return both ID and Content
+        return {
+          'id': data['id'],
+          'content': data['content']
+        };
       } else {
         if (kDebugMode) print("Error Send Message: ${response.body}");
         return null;
@@ -152,42 +152,26 @@ class ApiService {
     }
   }
 
+  // --- 6. Get TTS Audio from Backend ---
+  static Future<Uint8List?> getTtsAudio(int messageId) async {
+    if (currentUserId == null) return null;
 
-// --- 6. Gemini Text-to-Speech (TTS) ---
-  static Future<Uint8List?> generateSpeech(String text) async {
-    final url = Uri.parse('https://texttospeech.googleapis.com/v1/text:synthesize');
+    // Call your FastAPI endpoint
+    final url = Uri.parse('$baseUrl/chat/message/$messageId/tts?user_id=$currentUserId');
 
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer YOUR_GEMINI_API_KEY", // You need an API key
-        },
-        body: jsonEncode({
-          "input": {"text": text},
-          "voice": {
-            "languageCode": "en-US",
-            "name": "en-US-Neural2-J",
-            "ssmlGender": "MALE"
-          },
-          "audioConfig": {
-            "audioEncoding": "MP3",
-            "speakingRate": 1.0,
-            "pitch": 0.0,
-            "volumeGainDb": 0.0
-          }
-        }),
-      );
+      if (kDebugMode) print("🔊 Requesting TTS for Message ID: $messageId");
+
+      final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final audioContent = data['audioContent'];
-        return base64Decode(audioContent);
+        return response.bodyBytes;
+      } else {
+        if (kDebugMode) print("❌ TTS Error: ${response.statusCode} - ${response.body}");
+        return null;
       }
-      return null;
     } catch (e) {
-      if (kDebugMode) print("Exception TTS: $e");
+      if (kDebugMode) print("❌ TTS Exception: $e");
       return null;
     }
   }
