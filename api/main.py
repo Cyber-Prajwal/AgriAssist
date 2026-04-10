@@ -22,6 +22,7 @@ from db.database import engine, get_db,SessionLocal
 from db.models import User, OTP, ChatSession, ChatMessage, get_ist_time, WeatherCache
 from api import schemas
 from api.bazarbhav import get_market_data, get_baazar_bhav_for_ai
+from api.weather_service import weather_tool, get_user_weather_for_gemini
 
 # Create DB Tables
 models.Base.metadata.create_all(bind=engine)
@@ -246,7 +247,6 @@ async def process_tts_background(message_id: int, text: str):
     finally:
         db.close()
 
-
 # --- HELPER: SYSTEM INSTRUCTIONS ---
 def build_system_instruction(user, db, is_voice_mode: bool = False, language: str = "Marathi"):
     today = datetime.now().strftime("%d %B %Y")
@@ -306,7 +306,7 @@ def build_system_instruction(user, db, is_voice_mode: bool = False, language: st
         behavior_rules = f"""
 1. **Language & Tone:** You MUST communicate entirely in **{language}**. Speak completely naturally like a human agricultural expert on a phone call. Use a friendly conversational style. Talk like a human being, not a robot reading a manual.
 2. **Formatting & Punctuation:** STRICTLY NO MARKDOWN AND NO LISTS. Do not use colons (:), bullet points, numbered lists, asterisks (*), or hashtags (#). Use ONLY plain text with simple punctuation like periods and commas so the Text-to-Speech engine reads it smoothly.
-3. **Conciseness:** Keep answers very short and conversational (1-3 simple sentences). Wait for the farmer to ask follow-up questions.
+3. **Conciseness:** Keep answers very short and conversational (1-3 simple sentences). Wait for the farmer to ask follow-up questions. HOWEVER, if the farmer explicitly asks for historical prices, you may read out the past prices day-by-day.
         """
     else:
         behavior_rules = f"""
@@ -325,14 +325,16 @@ FARMER PROFILE:
 
 SCOPE OF CAPABILITIES:
 1. **General Farming Advice:** You are a fully qualified agronomist. You MUST answer general questions about farming, crop diseases (e.g., tomato blight, pests), soil preparation, and cultivation techniques using your own extensive knowledge.
-2. **When to use Tools:** ONLY use the `get_weather_forecast` or `get_baazar_bhav` tools if the user explicitly asks for weather updates or current market prices. For everything else, answer directly without a tool.
+2. **When to use Tools:** ONLY use the `get_weather_forecast` or `get_baazar_bhav_for_ai` tools if the user explicitly asks for weather updates or market prices. For everything else, answer directly without a tool.
 
 CORE BEHAVIOR:
 {behavior_rules}
 4. **Pesticides/Fertilizers:** If the user asks about a disease or pest, provide the Chemical Name + common Brand and Dosage (per 15L pump).
 
 MARKET PRICE TOOL RULES:
-Always extract the crop/commodity from the user's message before calling the Baazar Bhav tool.
+1. Always extract the crop/commodity from the user's message before calling the Baazar Bhav tool.
+2. **Default Behavior:** If they just ask "What is the price of X?", provide the *latest* price and a very brief summary of the trend.
+3. **Detailed History Behavior:** IF the user specifically asks for "previous prices", "past days", "history", or "yesterday's price" (e.g., 'magil bhav', 'kalche bhav'), you MUST read the tool data and provide a detailed day-by-day breakdown of the prices for the past available days. 
 
 CRITICAL CROP NAME TRANSLATIONS:
 You MUST map the farmer's spoken Hindi/Marathi/English word to these EXACT official government names:
@@ -421,25 +423,12 @@ def chat_with_gemini(
             args = function_call.args 
             
             if function_call.name == "get_weather_forecast":
-                # We don't actually need args.lat/lon because we use the user's DB location
-                if user.latitude and user.longitude:
-                    forecast_json = get_cached_weather(user.id, user.latitude, user.longitude, db)
-                    
-                    if forecast_json:
-                        # Convert JSON into a string for Gemini
-                        weather_result = "5-Day Forecast:\n"
-                        for day in forecast_json:
-                            weather_result += f"- {day['date']}: {day['condition']}, High {day['temp_max']}°C, Low {day['temp_min']}°C, Rain: {day['rain_mm']}mm\n"
-                    else:
-                        weather_result = "Failed to fetch weather data."
-                else:
-                    weather_result = "Cannot check weather: GPS coordinates are missing from profile."
+                
+                weather_result = get_user_weather_for_gemini(user_id=user.id, db=db)
                 
                 print(f"--- SENDING WEATHER TO GEMINI: {weather_result} ---")
-                # ... append to history and generate response as usual ...
                 
                 chat_history.append(response.candidates[0].content)
-
                 chat_history.append(types.Content(
                     role="user",
                     parts=[types.Part.from_function_response(
@@ -455,13 +444,12 @@ def chat_with_gemini(
                 )
                 ai_text = final_response.text
 
-            elif function_call.name == "get_baazar_bhav": 
+            elif function_call.name == "get_baazar_bhav_for_ai": 
                 state = args.get("state") or user.state
                 district = args.get("district") or user.district # Optional now
                 commodity = args.get("commodity")
                 
                 if state and commodity:
-                    # PASS THE DB SESSION HERE
                     bhav_result = get_baazar_bhav_for_ai(state=state, commodity=commodity, district=district)
                 else:
                     bhav_result = "Cannot check prices. Please ensure GPS location is saved and you mentioned a specific crop."
@@ -473,7 +461,7 @@ def chat_with_gemini(
                 chat_history.append(types.Content(
                     role="user",
                     parts=[types.Part.from_function_response(
-                        name="get_baazar_bhav",
+                        name="get_baazar_bhav_for_ai", 
                         response={"result": bhav_result}
                     )]
                 ))
@@ -622,6 +610,82 @@ def delete_chat_session(
 
     return {"message": "Chat session and history deleted successfully"}
 
+
+# --- Baazar Bhav Tool for gemini ---
+bhav_tool = types.Tool(
+    function_declarations=[
+        types.FunctionDeclaration(
+            name="get_baazar_bhav_for_ai", 
+            description="Get the agricultural market price (Baazar Bhav/Mandi rates) for a specific crop over the past 3 days. Returns local district data and state-wide fallbacks.",
+            parameters=types.Schema(
+                type=types.Type.OBJECT,
+                properties={
+                    "state": types.Schema(type=types.Type.STRING, description="The Indian state"),
+                    "district": types.Schema(type=types.Type.STRING, description="The Indian district (optional)"),
+                    "commodity": types.Schema(type=types.Type.STRING, description="The name of the crop or commodity (e.g., Cotton, Wheat, Onion)"),
+                },
+                required=["state", "commodity"] 
+            )
+        )
+    ]
+)
+
+# --- 15. Get Market Data for User's State ---
+@app.get("/market/my-state/{user_id}")
+async def get_user_state_bhavs(user_id: int, db: Session = Depends(get_db)):
+
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not user.state:
+        raise HTTPException(status_code=400, detail="User state not set")
+
+    data = await get_market_data(user.state, None)
+
+    return {
+        "state": user.state,
+        "district": user.district,
+        "data": data
+    }
+
+
+# --- 16. Search Market Data by State or District ---
+@app.get("/market/search")
+async def search_market(state: str, district: str | None = None):
+
+    data = await get_market_data(state, district)
+
+    return {
+        "state": state,
+        "district": district,
+        "data": data
+    }
+
+# --- 20. Get Government Schemes ---
+@app.get("/api/schemes/cleaned")
+def get_cleaned_schemes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """
+    Endpoint for Flutter UI to fetch the cleaned, farmer-specific schemes.
+    """
+    schemes = db.query(models.CleanedScheme).offset(skip).limit(limit).all()
+    return {"status": "success", "count": len(schemes), "data": schemes}
+
+# --- 21. Get Government schmes by ID ---
+@app.get("/api/schemes/sync")
+def sync_new_schemes(last_id: int = Query(0, description="The highest scheme ID the frontend currently has"), db: Session = Depends(get_db)):
+    """
+    Returns only schemes that are newer than the provided last_id.
+    """
+    new_schemes = db.query(models.CleanedScheme).filter(models.CleanedScheme.id > last_id).order_by(models.CleanedScheme.id.asc()).all()
+    
+    return {
+        "status": "success",
+        "count": len(new_schemes),
+        "data": new_schemes
+    }
+
 # --- Helper to get State and district from Latitude and Longitude ---
 def get_location_details(lat: float, lon: float):
     url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=10"
@@ -691,76 +755,18 @@ def update_user_location(
         db.rollback()
         raise HTTPException(status_code=500, detail="Database update failed")
 
-# --- Baazar Bhav Tool for gemini ---
-bhav_tool = types.Tool(
-    function_declarations=[
-        types.FunctionDeclaration(
-            name="get_baazar_bhav_for_ai", 
-            description="Get the current agricultural market price (Baazar Bhav/Mandi rates) for a specific crop/commodity.",
-            parameters=types.Schema(
-                type=types.Type.OBJECT,
-                properties={
-                    "state": types.Schema(type=types.Type.STRING, description="The Indian state"),
-                    "district": types.Schema(type=types.Type.STRING, description="The Indian district"),
-                    "commodity": types.Schema(type=types.Type.STRING, description="The name of the crop or commodity (e.g., Cotton, Wheat, Onion)"),
-                },
-                required=["state", "district", "commodity"]
-            )
-        )
-    ]
-)
-
-
-# --- 15. Get Market Data for User's State ---
-@app.get("/market/my-state/{user_id}")
-async def get_user_state_bhavs(user_id: int, db: Session = Depends(get_db)):
-
+# --- 19. Get User's Weather ---
+@app.get("/weather/my-forecast/{user_id}")
+def get_user_weather_page(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
-
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    if not user.state:
-        raise HTTPException(status_code=400, detail="User state not set")
-
-    data = await get_market_data(user.state, None)
-
-    return {
-        "state": user.state,
-        "district": user.district,
-        "data": data
-    }
-
-
-# --- 16. Search Market Data by State or District ---
-@app.get("/market/search")
-async def search_market(state: str, district: str | None = None):
-
-    data = await get_market_data(state, district)
-
-    return {
-        "state": state,
-        "district": district,
-        "data": data
-    }
-
-# ---Helper Weather Tool ---
-weather_tool = types.Tool(
-    function_declarations=[
-        types.FunctionDeclaration(
-            name="get_weather_forecast",
-            description="Get the 5-day weather forecast using latitude and longitude coordinates.",
-            parameters=types.Schema(
-                type=types.Type.OBJECT,
-                properties={
-                    "lat": types.Schema(type=types.Type.NUMBER, description="Latitude of the location"),
-                    "lon": types.Schema(type=types.Type.NUMBER, description="Longitude of the location"),
-                },
-                required=["lat", "lon"]
-            )
-        )
-    ]
-)
+    if not user or not user.latitude or not user.longitude:
+        raise HTTPException(status_code=400, detail="User GPS location not found.")
+        
+    weather_data = get_cached_weather(user.id, user.latitude, user.longitude, db)
+    if not weather_data:
+        raise HTTPException(status_code=500, detail="Failed to fetch weather data.")
+        
+    return {"location": f"{user.district}, {user.state}", "forecast": weather_data}
 
 # --- Weather Forecast 5 days openweather ---
 def get_weather_forecast(lat: float, lon: float):
@@ -805,7 +811,6 @@ def get_weather_forecast(lat: float, lon: float):
     except Exception as e:
         return f"Connection error: {str(e)}"
     
-
 def get_cached_weather(user_id: int, lat: float, lon: float, db: Session):
     """Fetches weather from OWM, processes rain/conditions, and caches it for 3 hours."""
     
@@ -887,39 +892,3 @@ def get_cached_weather(user_id: int, lat: float, lon: float, db: Session):
     except Exception as e:
         print(f"Weather Fetch Error: {e}")
         return None
-    
-# --- 19. Get User's Weather ---
-@app.get("/weather/my-forecast/{user_id}")
-def get_user_weather_page(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user or not user.latitude or not user.longitude:
-        raise HTTPException(status_code=400, detail="User GPS location not found.")
-        
-    weather_data = get_cached_weather(user.id, user.latitude, user.longitude, db)
-    if not weather_data:
-        raise HTTPException(status_code=500, detail="Failed to fetch weather data.")
-        
-    return {"location": f"{user.district}, {user.state}", "forecast": weather_data}
-
-# --- 20. Get Government Schemes ---
-@app.get("/api/schemes/cleaned")
-def get_cleaned_schemes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """
-    Endpoint for Flutter UI to fetch the cleaned, farmer-specific schemes.
-    """
-    schemes = db.query(models.CleanedScheme).offset(skip).limit(limit).all()
-    return {"status": "success", "count": len(schemes), "data": schemes}
-
-# --- 21. Get Government schmes by ID ---
-@app.get("/api/schemes/sync")
-def sync_new_schemes(last_id: int = Query(0, description="The highest scheme ID the frontend currently has"), db: Session = Depends(get_db)):
-    """
-    Returns only schemes that are newer than the provided last_id.
-    """
-    new_schemes = db.query(models.CleanedScheme).filter(models.CleanedScheme.id > last_id).order_by(models.CleanedScheme.id.asc()).all()
-    
-    return {
-        "status": "success",
-        "count": len(new_schemes),
-        "data": new_schemes
-    }
